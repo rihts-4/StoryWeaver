@@ -42,7 +42,7 @@ export function LoginForm({
       )
 
       if (success) {
-        router.push('/') // Redirect on success
+        router.replace('/') // Redirect on success
       } else {
         setError('Login failed. Please try again.')
       }
