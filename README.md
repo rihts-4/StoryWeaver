@@ -54,3 +54,6 @@ I need this launched in 8 weeks. I'm paying good money for this, so I expect cle
 3. How will you optimize for SEO so stories get discovered?
 
 I'm excited to see what you can build! This could be the next big thing in interactive storytelling.
+
+**INSPIRATION**
+comick.io
