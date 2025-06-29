@@ -1,3 +1,5 @@
+**BY CLAUDE AI**
+
 **Client Brief: Novel Platform Migration to Next.js**
 
 ---
