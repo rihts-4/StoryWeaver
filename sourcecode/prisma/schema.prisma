@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  displayName String?  @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  bio         String?
+  isAuthor    Boolean  @default(false) @map("is_author")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  stories      Story[]
+  votes        Vote[]
+  storyFollows StoryFollow[]
+  comments     Comment[]
+
+  @@map("users")
+}
+
+model Story {
+  id            String      @id @default(cuid())
+  authorId      String      @map("author_id")
+  title         String
+  description   String?
+  genre         String?
+  coverImageUrl String?     @map("cover_image_url")
+  status        StoryStatus @default(ACTIVE)
+  totalChapters Int         @default(0) @map("total_chapters")
+  totalReaders  Int         @default(0) @map("total_readers")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  author       User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  chapters     Chapter[]
+  storyFollows StoryFollow[]
+
+  @@map("stories")
+}
+
+model Chapter {
+  id            String   @id @default(cuid())
+  storyId       String   @map("story_id")
+  chapterNumber Int      @map("chapter_number")
+  title         String
+  content       String
+  imageUrl      String?  @map("image_url")
+  publishedAt   DateTime @default(now()) @map("published_at")
+  viewCount     Int      @default(0) @map("view_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  story          Story           @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  decisionPoints DecisionPoint[]
+  comments       Comment[]
+
+  @@map("chapters")
+}
+
+model DecisionPoint {
+  id         String   @id @default(cuid())
+  chapterId  String   @map("chapter_id")
+  question   String
+  closesAt   DateTime @map("closes_at")
+  isActive   Boolean  @default(true) @map("is_active")
+  totalVotes Int      @default(0) @map("total_votes")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  chapter Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  options DecisionOption[]
+  votes   Vote[]
+
+  @@map("decision_points")
+}
+
+model DecisionOption {
+  id              String   @id @default(cuid())
+  decisionPointId String   @map("decision_point_id")
+  optionText      String   @map("option_text")
+  voteCount       Int      @default(0) @map("vote_count")
+  isWinner        Boolean  @default(false) @map("is_winner")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  decisionPoint DecisionPoint @relation(fields: [decisionPointId], references: [id], onDelete: Cascade)
+  votes         Vote[]
+
+  @@map("decision_options")
+}
+
+model Vote {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  decisionPointId String   @map("decision_point_id")
+  optionId        String   @map("option_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decisionPoint DecisionPoint  @relation(fields: [decisionPointId], references: [id], onDelete: Cascade)
+  option        DecisionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, decisionPointId])
+  @@map("votes")
+}
+
+model StoryFollow {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  storyId   String   @map("story_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@map("story_follows")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  chapterId String   @map("chapter_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+enum StoryStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+}

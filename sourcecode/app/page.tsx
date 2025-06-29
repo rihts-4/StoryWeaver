@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PrismaClient } from "@/app/generated/prisma";
 
 export default function Home() {
   return (
