@@ -27,14 +27,10 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/context/AuthContext"
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   company: [
     {
       name: "StoryWeaver",
@@ -103,6 +99,8 @@ function StaticTeamDisplay({ team }: { team: typeof data.company[0] }) {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, isAuthor } = useAuth()
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -113,7 +111,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser/>
+        {user ? 
+        (<NavUser user={user}/>) :
+        (<NavUser user={null} />)}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

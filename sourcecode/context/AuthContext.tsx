@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useRouter } from 'next/navigation'
 
 // User type based on your Prisma schema
-interface User {
+export interface User {
   id: string
   email: string
   username: string
@@ -16,15 +16,16 @@ interface User {
   updatedAt: string
 }
 
-// Auth context type
+// Auth context type - Focused on core functionality
 interface AuthContextType {
   user: User | null
   isLoading: boolean
   isAuthenticated: boolean
+  isAuthor: boolean
   login: (email: string, username: string) => Promise<boolean>
+  signupReader: (email: string, username: string, displayName?: string) => Promise<boolean>
+  signupAuthor: (email: string, username: string, displayName?: string) => Promise<boolean>
   logout: () => Promise<void>
-  updateUser: (userData: Partial<User>) => void
-  refreshUser: () => Promise<void>
 }
 
 // Create context
@@ -49,8 +50,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // Check if user is authenticated
+  // Computed values
   const isAuthenticated = !!user
+  const isAuthor = isAuthenticated && user?.isAuthor === true
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -80,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  // Login function - Updated to use your /api/userlogin endpoint
+  // Login function
   const login = async (email: string, username: string): Promise<boolean> => {
     try {
       setIsLoading(true)
@@ -116,17 +118,104 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
+  // Reader signup function
+  const signupReader = async (
+    email: string, 
+    username: string, 
+    displayName?: string
+  ): Promise<boolean> => {
+    try {
+      setIsLoading(true)
+      
+      const response = await fetch('/api/signup/reader', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email, 
+          username, 
+          displayName,
+          isAuthor: false // Reader signup
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(data.user))
+        
+        // Set user data in state
+        setUser(data.user)
+        
+        return true
+      } else {
+        const errorData = await response.json()
+        console.error('Reader signup failed:', errorData.error)
+        return false
+      }
+    } catch (error) {
+      console.error('Reader signup error:', error)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Author signup function
+  const signupAuthor = async (
+    email: string, 
+    username: string, 
+    displayName?: string
+  ): Promise<boolean> => {
+    try {
+      setIsLoading(true)
+      
+      const response = await fetch('/api/signup/author', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email, 
+          username, 
+          displayName,
+          isAuthor: true // Author signup
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify(data.user))
+        
+        // Set user data in state
+        setUser(data.user)
+        
+        return true
+      } else {
+        const errorData = await response.json()
+        console.error('Author signup failed:', errorData.error)
+        return false
+      }
+    } catch (error) {
+      console.error('Author signup error:', error)
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Logout function
   const logout = async () => {
     try {
       setIsLoading(true)
-      
-      // No server-side logout needed since you don't have tokens
-      // Just clear local storage and state
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      // Always clear local state
+      // Clear local state
       localStorage.removeItem('user')
       setUser(null)
       setIsLoading(false)
@@ -136,51 +225,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  // Update user data
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData }
-      setUser(updatedUser)
-      // Update localStorage as well
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-    }
-  }
-
-  // Refresh user data from server
-  const refreshUser = async () => {
-    if (!user) return
-    
-    try {
-      const response = await fetch('/api/userlogin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          email: user.email, 
-          username: user.username 
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-        localStorage.setItem('user', JSON.stringify(data.user))
-      }
-    } catch (error) {
-      console.error('Failed to refresh user data:', error)
-    }
-  }
-
-  // Context value
+  // Context value - Simplified to core functionality
   const value: AuthContextType = {
     user,
     isLoading,
     isAuthenticated,
+    isAuthor,
     login,
+    signupReader,
+    signupAuthor,
     logout,
-    updateUser,
-    refreshUser,
   }
 
   return (
@@ -218,12 +272,34 @@ export const withAuth = <P extends object>(Component: React.ComponentType<P>) =>
   }
 }
 
-// Hook for author-only features
-export const useAuthorAuth = () => {
-  const { user, isAuthenticated } = useAuth()
-  return {
-    isAuthor: isAuthenticated && user?.isAuthor === true,
-    user,
-    isAuthenticated,
+// HOC for author-only routes
+export const withAuthorAuth = <P extends object>(Component: React.ComponentType<P>) => {
+  return function AuthorProtectedComponent(props: P) {
+    const { isAuthenticated, isAuthor, isLoading } = useAuth()
+    const router = useRouter()
+
+    useEffect(() => {
+      if (!isLoading) {
+        if (!isAuthenticated) {
+          router.push('/login')
+        } else if (!isAuthor) {
+          router.push('/') // Redirect non-authors to home
+        }
+      }
+    }, [isAuthenticated, isAuthor, isLoading, router])
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        </div>
+      )
+    }
+
+    if (!isAuthenticated || !isAuthor) {
+      return null
+    }
+
+    return <Component {...props} />
   }
 }

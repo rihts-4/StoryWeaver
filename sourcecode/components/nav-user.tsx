@@ -9,6 +9,7 @@ import {
   Sparkles,
   User,
   UserPlus,
+  Signature,
 } from "lucide-react"
 
 import {
@@ -33,17 +34,15 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { User as UserType, useAuth } from "@/context/AuthContext" // ✅ Renamed import to avoid conflicts
 
 export function NavUser({
   user,
 }: {
-  user?: {
-    name: string
-    email: string
-    avatar: string
-  } | null
+  user: UserType | null // ✅ Fixed prop type
 }) {
   const { isMobile } = useSidebar()
+  const { logout } = useAuth() // ✅ Get logout function from context
 
   // If no user is logged in, show sign in/sign up buttons
   if (!user) {
@@ -63,12 +62,21 @@ export function NavUser({
                 Sign Up
               </Link>
             </Button>
+            <Button asChild size="sm" className="w-full">
+              <Link href="/auth/newauthor">
+                <Signature className="size-4 mr-2" />
+                Become an Author
+              </Link>
+            </Button>
           </div>
         </SidebarMenuItem>
       </SidebarMenu>
     )
   }
 
+  // ✅ Helper to get display name
+  const displayName = user.displayName || user.username
+  
   // If user is logged in, show user dropdown
   return (
     <SidebarMenu>
@@ -80,13 +88,13 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={user.avatarUrl} alt={displayName} /> {/* ✅ Fixed property names */}
                 <AvatarFallback className="rounded-lg">
-                  {user.name.charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase()} {/* ✅ Fixed property names */}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{displayName}</span> {/* ✅ Fixed property names */}
                 <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
@@ -101,13 +109,13 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={user.avatarUrl} alt={displayName} /> {/* ✅ Fixed property names */}
                   <AvatarFallback className="rounded-lg">
-                    {user.name.charAt(0).toUpperCase()}
+                    {displayName.charAt(0).toUpperCase()} {/* ✅ Fixed property names */}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{displayName}</span> {/* ✅ Fixed property names */}
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
@@ -149,7 +157,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={logout}> {/* ✅ Added logout functionality */}
               <LogOut />
               Log out
             </DropdownMenuItem>
