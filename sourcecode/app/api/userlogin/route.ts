@@ -1,6 +1,5 @@
 import { prisma } from "@/utils/client";
 import { NextRequest, NextResponse } from "next/server";
-import Link from "next/link";
 
 export async function POST(request: NextRequest) {
     const { email, username } = await request.json();
